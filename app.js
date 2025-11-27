@@ -1,9 +1,55 @@
 // Create API Gateway client using SDK1
+// Make sure apigClientFactory is available from apigClient.js
 const apigClient = apigClientFactory.newClient({
-  apiKey: "YOUR_API_KEY_HERE", // <-- paste your real key
+  apiKey: "",
 });
+// Base URL is already inside SDK via endpoint, but we must use correct stage (V1)
 
-// ... search code stays the same ...
+// ===== SEARCH =====
+const searchInput = document.getElementById("search-input");
+const searchButton = document.getElementById("search-button");
+const searchResultsDiv = document.getElementById("search-results");
+
+searchButton.addEventListener("click", async () => {
+  const query = searchInput.value.trim();
+  searchResultsDiv.innerHTML = "Searching...";
+
+  const params = {
+    q: query,
+  };
+  const body = {};
+  const additionalParams = {};
+
+  try {
+    // method name pattern from SDK: {path}{Method}
+    // Path is /search with GET -> searchGet
+    const result = await apigClient.searchGet(params, body, additionalParams);
+
+    // result.data should be whatever your Lambda returns (array or {results: [...]})
+    const data = result.data;
+
+    searchResultsDiv.innerHTML = "";
+
+    const results = Array.isArray(data) ? data : data.results || [];
+
+    if (!results.length) {
+      searchResultsDiv.textContent = "No results.";
+      return;
+    }
+
+    results.forEach((item) => {
+      // Assume your index has objectKey and bucket, so S3 URL:
+      const url = `https://${item.bucket}.s3.amazonaws.com/${item.objectKey}`;
+      const img = document.createElement("img");
+      img.src = url;
+      img.alt = (item.labels || []).join(", ");
+      searchResultsDiv.appendChild(img);
+    });
+  } catch (err) {
+    console.error(err);
+    searchResultsDiv.textContent = "Error during search. Check console.";
+  }
+});
 
 // ===== UPLOAD =====
 const fileInput = document.getElementById("file-input");

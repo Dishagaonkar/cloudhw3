@@ -35,20 +35,28 @@
       <div id="upload-status"></div>
     </section>
 
-    <!-- API Gateway SDK (from SDK1 zip) -->
+    <!-- Axios -->
     <script src="lib/axios/dist/axios.standalone.js"></script>
-    <script src="lib/CryptoJS/rollups/hmac-sha256.js"></script>
+
+    <!-- CryptoJS base + SHA256 + HMAC + Base64 -->
+    <script src="lib/CryptoJS/rollups/crypto-js.js"></script>
     <script src="lib/CryptoJS/rollups/sha256.js"></script>
     <script src="lib/CryptoJS/components/hmac.js"></script>
     <script src="lib/CryptoJS/components/enc-base64.js"></script>
+
+    <!-- URL Template -->
     <script src="lib/url-template/url-template.js"></script>
+
+    <!-- API Gateway Core -->
     <script src="lib/apiGatewayCore/sigV4Client.js"></script>
     <script src="lib/apiGatewayCore/apiGatewayClient.js"></script>
     <script src="lib/apiGatewayCore/simpleHttpClient.js"></script>
     <script src="lib/apiGatewayCore/utils.js"></script>
+
+    <!-- Generated SDK Client -->
     <script src="apigClient.js"></script>
 
-    <!-- Your app code -->
+    <!-- Your App Code -->
     <script src="app.js"></script>
   </body>
 </html>
