@@ -1,0 +1,17 @@
+version: 0.2
+
+phases:
+  install:
+    commands:
+      - echo "No frontend build step, just uploading static files"
+  build:
+    commands:
+      - echo "Preparing frontend artifact"
+      - mkdir -p build
+      - cp -r frontend/* build/
+
+artifacts:
+  files:
+    - "**/*"
+  base-directory: build
+  discard-paths: no

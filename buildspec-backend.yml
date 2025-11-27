@@ -1,0 +1,25 @@
+version: 0.2
+
+phases:
+  install:
+    commands:
+      - pip install --upgrade pip
+  build:
+    commands:
+      # Package search-photos Lambda
+      - mkdir -p build/search-photos
+      - cp backend/search-photos/lambda_function.py build/search-photos/
+      - if [ -f backend/search-photos/requirements.txt ]; then pip install -r backend/search-photos/requirements.txt -t build/search-photos/; fi
+      - cd build/search-photos && zip -r ../search-photos.zip . && cd ../../
+
+      # Package index-photos Lambda (if you have it)
+      - mkdir -p build/index-photos
+      - cp backend/index-photos/lambda_function.py build/index-photos/
+      - if [ -f backend/index-photos/requirements.txt ]; then pip install -r backend/index-photos/requirements.txt -t build/index-photos/; fi
+      - cd build/index-photos && zip -r ../index-photos.zip . && cd ../../
+
+artifacts:
+  files:
+    - build/search-photos.zip
+    - build/index-photos.zip
+  discard-paths: yes
