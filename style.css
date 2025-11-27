@@ -1,0 +1,30 @@
+body {
+  font-family: Arial, sans-serif;
+  max-width: 800px;
+  margin: 20px auto;
+}
+
+h1 {
+  text-align: center;
+}
+
+section {
+  margin-bottom: 30px;
+}
+
+#search-results img {
+  max-width: 150px;
+  margin: 5px;
+  display: inline-block;
+}
+
+#upload-status {
+  margin-top: 10px;
+  font-weight: bold;
+}
+
+input[type="text"] {
+  width: 60%;
+  padding: 5px;
+  margin-right: 5px;
+}

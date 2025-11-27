@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>AI Photo Search</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <h1>AI Photo Search</h1>
+
+    <!-- Search section -->
+    <section id="search-section">
+      <h2>Search Photos</h2>
+      <input
+        type="text"
+        id="search-input"
+        placeholder="Type a label, e.g. cat, beach"
+      />
+      <button id="search-button">Search</button>
+      <div id="search-results"></div>
+    </section>
+
+    <hr />
+
+    <!-- Upload section -->
+    <section id="upload-section">
+      <h2>Upload Photo</h2>
+      <input type="file" id="file-input" accept="image/*" />
+      <input
+        type="text"
+        id="labels-input"
+        placeholder="Custom labels (comma separated: Sam, Sally)"
+      />
+      <button id="upload-button">Upload</button>
+      <div id="upload-status"></div>
+    </section>
+
+    <!-- API Gateway SDK (from SDK1 zip) -->
+    <script src="lib/axios/dist/axios.standalone.js"></script>
+    <script src="lib/CryptoJS/rollups/hmac-sha256.js"></script>
+    <script src="lib/CryptoJS/rollups/sha256.js"></script>
+    <script src="lib/CryptoJS/components/hmac.js"></script>
+    <script src="lib/CryptoJS/components/enc-base64.js"></script>
+    <script src="lib/url-template/url-template.js"></script>
+    <script src="lib/apiGatewayCore/sigV4Client.js"></script>
+    <script src="lib/apiGatewayCore/apiGatewayClient.js"></script>
+    <script src="lib/apiGatewayCore/simpleHttpClient.js"></script>
+    <script src="lib/apiGatewayCore/utils.js"></script>
+    <script src="apigClient.js"></script>
+
+    <!-- Your app code -->
+    <script src="app.js"></script>
+  </body>
+</html>
