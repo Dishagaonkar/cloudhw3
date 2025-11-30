@@ -12,15 +12,12 @@ phases:
       - echo "Packaging search-photos Lambda"
       - mkdir -p build/search-photos
       - cp backend/search-photos.py build/search-photos/lambda_function.py
-      # ⬇️ Install OpenSearch client into the same folder that will be zipped
-      - pip install opensearch-py -t build/search-photos
       - cd build/search-photos && zip -r ../search-photos.zip . && cd ../..
 
       - echo "Packaging index-photos Lambda"
       - mkdir -p build/index-photos
       - cp backend/index-photos.py build/index-photos/lambda_function.py
-      # ⬇️ Same for the index lambda
-      - pip install opensearch-py -t build/index-photos
+
       - cd build/index-photos && zip -r ../index-photos.zip . && cd ../..
 
 artifacts:

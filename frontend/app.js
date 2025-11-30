@@ -75,8 +75,9 @@ uploadButton.addEventListener("click", async () => {
 
   uploadStatusDiv.textContent = "Uploading...";
 
+  // 🔹 use path param 'object' instead of query param 'filename'
   const params = {
-    filename: file.name, // maps to ?filename=...
+    object: file.name,
   };
 
   const body = file;
@@ -84,13 +85,18 @@ uploadButton.addEventListener("click", async () => {
   const additionalParams = {
     headers: {
       "Content-Type": file.type || "application/octet-stream",
-      "x-amz-meta-customLabels": customLabelsHeader,
+      "x-amz-meta-customlabels": customLabelsHeader,
     },
   };
 
   try {
-    // PATH IS /upload with PUT -> method name is uploadPut
-    const result = await apigClient.uploadPut(params, body, additionalParams);
+    // ⚠️ If your SDK was generated AFTER you added /upload/{object},
+    // the method name will likely be uploadObjectPut, not uploadPut.
+    const result = await apigClient.uploadObjectPut(
+      params,
+      body,
+      additionalParams
+    );
     console.log(result);
     uploadStatusDiv.textContent = "Upload successful!";
   } catch (err) {
