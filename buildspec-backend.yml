@@ -1,3 +1,32 @@
+# version: 0.2
+
+# phases:
+#   install:
+#     runtime-versions:
+#       python: 3.10
+#     commands:
+#       - pip install --upgrade pip
+
+#   build:
+#     commands:
+#       - echo "Packaging search-photos Lambda"
+#       - mkdir -p build/search-photos
+#       - cp backend/search-photos.py build/search-photos/lambda_function.py
+#       - cd build/search-photos && zip -r ../search-photos.zip . && cd ../..
+
+#       - echo "Packaging index-photos Lambda"
+#       - mkdir -p build/index-photos
+#       - cp backend/index-photos.py build/index-photos/lambda_function.py
+
+#       - cd build/index-photos && zip -r ../index-photos.zip . && cd ../..
+
+# artifacts:
+#   base-directory: build
+#   files:
+#     - search-photos.zip
+#     - index-photos.zip
+#   discard-paths: yes
+
 version: 0.2
 
 phases:
@@ -9,20 +38,12 @@ phases:
 
   build:
     commands:
-      - echo "Packaging search-photos Lambda"
-      - mkdir -p build/search-photos
-      - cp backend/search-photos.py build/search-photos/lambda_function.py
-      - cd build/search-photos && zip -r ../search-photos.zip . && cd ../..
-
-      - echo "Packaging index-photos Lambda"
-      - mkdir -p build/index-photos
-      - cp backend/index-photos.py build/index-photos/lambda_function.py
-
-      - cd build/index-photos && zip -r ../index-photos.zip . && cd ../..
+      - echo "Preparing search-photos Lambda package"
+      - mkdir -p build
+      - cp backend/search-photos.py build/lambda_function.py
 
 artifacts:
   base-directory: build
   files:
-    - search-photos.zip
-    - index-photos.zip
+    - lambda_function.py
   discard-paths: yes
