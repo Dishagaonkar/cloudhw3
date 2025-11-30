@@ -52,8 +52,8 @@ apigClientFactory.newClient = function (config) {
   }
 
   // extract endpoint and path from url
-  // var invokeUrl = 'https://l2ntureec1.execute-api.us-east-1.amazonaws.com/V1';
-  var invokeUrl = "https://bbrnrd1eu8.execute-api.us-east-1.amazonaws.com/V1";
+  var invokeUrl = "https://l2ntureec1.execute-api.us-east-1.amazonaws.com/V1";
+  //   var invokeUrl = "https://bbrnrd1eu8.execute-api.us-east-1.amazonaws.com/V1";
   var endpoint = /(^https?:\/\/[^\/]+)/g.exec(invokeUrl)[1];
   var pathComponent = invokeUrl.substring(endpoint.length);
 
