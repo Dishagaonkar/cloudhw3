@@ -75,29 +75,20 @@ uploadButton.addEventListener("click", async () => {
 
   uploadStatusDiv.textContent = "Uploading...";
 
-  // 🔹 use path param 'object' instead of query param 'filename'
-  const params = {
-    object: file.name,
-  };
-
-  const body = file;
-
-  const additionalParams = {
-    headers: {
-      "Content-Type": file.type || "application/octet-stream",
-      "x-amz-meta-customlabels": customLabelsHeader,
-    },
-  };
+  // Call API Gateway directly: PUT /V1/upload/{object}
+  const url = `https://l2ntureec1.execute-api.us-east-1.amazonaws.com/V1/upload/${encodeURIComponent(
+    file.name
+  )}`;
 
   try {
-    // ⚠️ If your SDK was generated AFTER you added /upload/{object},
-    // the method name will likely be uploadObjectPut, not uploadPut.
-    const result = await apigClient.uploadObjectPut(
-      params,
-      body,
-      additionalParams
-    );
-    console.log(result);
+    const res = await axios.put(url, file, {
+      headers: {
+        "Content-Type": file.type || "application/octet-stream",
+        "x-amz-meta-customlabels": customLabelsHeader,
+        "x-api-key": "GKLoyNNltr6wqagH21qV71wEN9x97fN08m9Gx7IR",
+      },
+    });
+    console.log(res);
     uploadStatusDiv.textContent = "Upload successful!";
   } catch (err) {
     console.error(err);
