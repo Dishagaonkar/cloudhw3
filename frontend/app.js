@@ -1,7 +1,7 @@
 // Create API Gateway client using SDK1
 // Make sure apigClientFactory is available from apigClient.js
 const apigClient = apigClientFactory.newClient({
-  apiKey: "",
+  apiKey: "GKLoyNNltr6wqagH21qV71wEN9x97fN08m9Gx7IR",
 });
 // Base URL is already inside SDK via endpoint, but we must use correct stage (V1)
 
