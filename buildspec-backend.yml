@@ -19,6 +19,7 @@ phases:
       - cd build/index-photos && zip -r ../index-photos.zip . && cd ../..
 
 artifacts:
+  base-directory: build # ⭐ NEW: look inside build/
   files:
     - search-photos.zip
     - index-photos.zip
