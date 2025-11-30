@@ -12,20 +12,19 @@ const searchResultsDiv = document.getElementById("search-results");
 
 searchButton.addEventListener("click", async () => {
   const query = searchInput.value.trim();
+  if (!query) {
+    searchResultsDiv.textContent = "Please enter a query.";
+    return;
+  }
+
   searchResultsDiv.innerHTML = "Searching...";
 
-  const params = {
-    q: query,
-  };
+  const params = { q: query };
   const body = {};
   const additionalParams = {};
 
   try {
-    // method name pattern from SDK: {path}{Method}
-    // Path is /search with GET -> searchGet
     const result = await apigClient.searchGet(params, body, additionalParams);
-
-    // result.data should be whatever your Lambda returns (array or {results: [...]})
     const data = result.data;
 
     searchResultsDiv.innerHTML = "";
@@ -38,12 +37,49 @@ searchButton.addEventListener("click", async () => {
     }
 
     results.forEach((item) => {
-      // Assume your index has objectKey and bucket, so S3 URL:
-      const url = `https://${item.bucket}.s3.amazonaws.com/${item.objectKey}`;
+      // Build image URL from bucket + key
+      const imgUrl = `https://${
+        item.bucket
+      }.s3.amazonaws.com/${encodeURIComponent(item.objectKey)}`;
+      // If your bucket is a website bucket instead, use this:
+      // const imgUrl = `http://${item.bucket}.s3-website-us-east-1.amazonaws.com/${encodeURIComponent(item.objectKey)}`;
+
+      // Create a container for this result
+      const card = document.createElement("div");
+      card.className = "photo-card";
+      card.style.display = "inline-block";
+      card.style.margin = "10px";
+      card.style.textAlign = "center";
+
+      // Create the <img>
       const img = document.createElement("img");
-      img.src = url;
-      img.alt = (item.labels || []).join(", ");
-      searchResultsDiv.appendChild(img);
+      img.src = imgUrl;
+      img.alt = (item.labels || []).join(", ") || item.objectKey;
+      img.style.maxWidth = "200px";
+      img.style.maxHeight = "200px";
+      img.style.display = "block";
+      img.style.marginBottom = "5px";
+
+      // If image fails to load, show a little message
+      img.onerror = () => {
+        img.style.display = "none";
+        const errorMsg = document.createElement("div");
+        errorMsg.textContent =
+          "Image not accessible (check S3 permissions/URL)";
+        card.appendChild(errorMsg);
+      };
+
+      // Caption: filename + labels
+      const caption = document.createElement("div");
+      caption.className = "photo-caption";
+      const labelsText = (item.labels || []).join(", ");
+      caption.textContent = `File: ${item.objectKey}${
+        labelsText ? " | Labels: " + labelsText : ""
+      }`;
+
+      card.appendChild(img);
+      card.appendChild(caption);
+      searchResultsDiv.appendChild(card);
     });
   } catch (err) {
     console.error(err);
