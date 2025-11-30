@@ -11,29 +11,18 @@ Resources:
   PhotoStorageBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Sub "${AWS::StackName}-photo-storage"
+      BucketName:
+        Fn::Sub: "${AWS::StackName}-photo-storage"
       VersioningConfiguration:
         Status: Enabled
 
   FrontendBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Sub "${AWS::StackName}-frontend"
+      BucketName:
+        Fn::Sub: "${AWS::StackName}-frontend"
       WebsiteConfiguration:
         IndexDocument: index.html
-
-  FrontendBucketPolicy:
-    Type: AWS::S3::BucketPolicy
-    Properties:
-      Bucket: !Ref FrontendBucket
-      PolicyDocument:
-        Version: "2012-10-17"
-        Statement:
-          - Sid: PublicReadForWebsite
-            Effect: Allow
-            Principal: "*"
-            Action: s3:GetObject
-            Resource: !Sub "${FrontendBucket.Arn}/*"
 
   ########################################
   # IAM ROLE FOR LAMBDAS
@@ -42,7 +31,8 @@ Resources:
   LambdaExecutionRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: !Sub "${AWS::StackName}-lambda-role"
+      RoleName:
+        Fn::Sub: "${AWS::StackName}-lambda-role"
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -60,7 +50,8 @@ Resources:
   SearchPhotosFunction:
     Type: AWS::Lambda::Function
     Properties:
-      FunctionName: !Sub "${AWS::StackName}-search-photos"
+      FunctionName:
+        Fn::Sub: "${AWS::StackName}-search-photos"
       Runtime: python3.10
       Handler: index.lambda_handler
       Role: !GetAtt LambdaExecutionRole.Arn
@@ -70,16 +61,14 @@ Resources:
           import json
 
           def lambda_handler(event, context):
-              # Simple stub that just echos the query param "q"
               q = None
               if event.get("queryStringParameters"):
                   q = event["queryStringParameters"].get("q")
-
               return {
                   "statusCode": 200,
                   "headers": {"Content-Type": "application/json"},
                   "body": json.dumps({
-                      "message": "search-photos Lambda reached",
+                      "message": "search-photos Lambda reached (from CFN)",
                       "q": q
                   })
               }
@@ -87,7 +76,8 @@ Resources:
   UploadPhotosFunction:
     Type: AWS::Lambda::Function
     Properties:
-      FunctionName: !Sub "${AWS::StackName}-upload-photos"
+      FunctionName:
+        Fn::Sub: "${AWS::StackName}-upload-photos"
       Runtime: python3.10
       Handler: index.lambda_handler
       Role: !GetAtt LambdaExecutionRole.Arn
@@ -97,12 +87,11 @@ Resources:
           import json
 
           def lambda_handler(event, context):
-              # Stub upload handler – in real HW you would write to S3 etc.
               return {
                   "statusCode": 200,
                   "headers": {"Content-Type": "application/json"},
                   "body": json.dumps({
-                      "message": "upload-photos Lambda reached"
+                      "message": "upload-photos Lambda reached (from CFN)"
                   })
               }
 
@@ -113,9 +102,10 @@ Resources:
   PhotoApi:
     Type: AWS::ApiGateway::RestApi
     Properties:
-      Name: !Sub "${AWS::StackName}-photo-api"
+      Name:
+        Fn::Sub: "${AWS::StackName}-photo-api"
 
-  PhotoApiRootResource:
+  PhotoApiSearchResource:
     Type: AWS::ApiGateway::Resource
     Properties:
       RestApiId: !Ref PhotoApi
@@ -134,16 +124,15 @@ Resources:
     Type: AWS::ApiGateway::Method
     Properties:
       RestApiId: !Ref PhotoApi
-      ResourceId: !Ref PhotoApiRootResource
+      ResourceId: !Ref PhotoApiSearchResource
       HttpMethod: GET
       AuthorizationType: NONE
       Integration:
         Type: AWS_PROXY
         IntegrationHttpMethod: POST
-        Uri: !Sub >
-          arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${SearchPhotosFunction.Arn}/invocations
+        Uri:
+          Fn::Sub: "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${SearchPhotosFunction.Arn}/invocations"
 
-  # PUT /upload -> UploadPhotosFunction
   PutUploadMethod:
     Type: AWS::ApiGateway::Method
     Properties:
@@ -154,8 +143,8 @@ Resources:
       Integration:
         Type: AWS_PROXY
         IntegrationHttpMethod: POST
-        Uri: !Sub >
-          arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${UploadPhotosFunction.Arn}/invocations
+        Uri:
+          Fn::Sub: "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${UploadPhotosFunction.Arn}/invocations"
 
   # Permissions so API Gateway can call the Lambdas
   SearchLambdaPermission:
@@ -164,7 +153,8 @@ Resources:
       FunctionName: !Ref SearchPhotosFunction
       Action: lambda:InvokeFunction
       Principal: apigateway.amazonaws.com
-      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${PhotoApi}/*/GET/search"
+      SourceArn:
+        Fn::Sub: "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${PhotoApi}/*/GET/search"
 
   UploadLambdaPermission:
     Type: AWS::Lambda::Permission
@@ -172,7 +162,8 @@ Resources:
       FunctionName: !Ref UploadPhotosFunction
       Action: lambda:InvokeFunction
       Principal: apigateway.amazonaws.com
-      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${PhotoApi}/*/PUT/upload"
+      SourceArn:
+        Fn::Sub: "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${PhotoApi}/*/PUT/upload"
 
   # Deployment + Stage V1
   ApiDeployment:
@@ -197,6 +188,11 @@ Outputs:
     Description: Name of the photo storage bucket
     Value: !Ref PhotoStorageBucket
 
+  FrontendBucketName:
+    Description: Name of the frontend bucket
+    Value: !Ref FrontendBucket
+
   ApiInvokeURL:
     Description: Base URL of the API Gateway stage V1
-    Value: !Sub "https://${PhotoApi}.execute-api.${AWS::Region}.amazonaws.com/V1"
+    Value:
+      Fn::Sub: "https://${PhotoApi}.execute-api.${AWS::Region}.amazonaws.com/V1"
