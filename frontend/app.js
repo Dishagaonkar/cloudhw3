@@ -37,10 +37,10 @@ searchButton.addEventListener("click", async () => {
     }
 
     results.forEach((item) => {
-      // Build image URL from bucket + key
+      const REGION = "us-east-1";
       const imgUrl = `https://${
         item.bucket
-      }.s3.amazonaws.com/${encodeURIComponent(item.objectKey)}`;
+      }.s3.${REGION}.amazonaws.com/${encodeURIComponent(item.objectKey)}`;
       // If your bucket is a website bucket instead, use this:
       // const imgUrl = `http://${item.bucket}.s3-website-us-east-1.amazonaws.com/${encodeURIComponent(item.objectKey)}`;
 
