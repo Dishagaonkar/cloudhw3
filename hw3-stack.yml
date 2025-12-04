@@ -11,16 +11,14 @@ Resources:
   PhotoStorageBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName:
-        Fn::Sub: "${AWS::StackName}-photo-storage"
+      BucketName: !Sub "${AWS::AccountId}-${AWS::StackName}-photo-storage"
       VersioningConfiguration:
         Status: Enabled
 
   FrontendBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName:
-        Fn::Sub: "${AWS::StackName}-frontend"
+      BucketName: !Sub "${AWS::AccountId}-${AWS::StackName}-frontend"
       WebsiteConfiguration:
         IndexDocument: index.html
 
@@ -196,3 +194,19 @@ Outputs:
     Description: Base URL of the API Gateway stage V1
     Value:
       Fn::Sub: "https://${PhotoApi}.execute-api.${AWS::Region}.amazonaws.com/V1"
+
+  SearchPhotosFunctionName:
+    Description: Name of the Search Photos Lambda function
+    Value: !Ref SearchPhotosFunction
+
+  SearchPhotosFunctionArn:
+    Description: ARN of the Search Photos Lambda function
+    Value: !GetAtt SearchPhotosFunction.Arn
+
+  UploadPhotosFunctionName:
+    Description: Name of the Upload Photos Lambda function
+    Value: !Ref UploadPhotosFunction
+
+  UploadPhotosFunctionArn:
+    Description: ARN of the Upload Photos Lambda function
+    Value: !GetAtt UploadPhotosFunction.Arn

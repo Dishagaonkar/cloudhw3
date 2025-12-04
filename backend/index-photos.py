@@ -1,115 +1,24 @@
-# import boto3
-# import json
-# import urllib
-# from datetime import datetime
-# from opensearchpy import OpenSearch, RequestsHttpConnection
-# import os
-# import time
-# import base64
-
-# # Initialize clients
-# s3 = boto3.client('s3')
-# rekognition = boto3.client('rekognition', region_name='us-east-1')
-
-# # ElasticSearch configuration
-# es_endpoint = "search-photos-cq5z5g57zek6qmvs5p4lpdub5a.aos.us-east-1.on.aws"
-# es_username = "Cloudhw3"
-# es_password = "Cloud*hw3"
-
-# es = OpenSearch(
-#     hosts=[{'host': es_endpoint, 'port': 443}],
-#     http_auth=(es_username, es_password),
-#     use_ssl=True,
-#     verify_certs=True,
-#     connection_class=RequestsHttpConnection
-# )
-
-# print("=== Testing OpenSearch Connection ===")
-# try:
-#     info = es.info()
-#     print("OpenSearch info:", info)
-# except Exception as e:
-#     print("OpenSearch INFO ERROR:", str(e))
-
-
-
-# def lambda_handler(event, context):
-#     # Get the S3 bucket and key from the event
-#     bucket = event['Records'][0]['s3']['bucket']['name']
-#     key = urllib.parse.unquote_plus(event['Records'][0]['s3']['object']['key'])
-
-#     print("bucket:", bucket)
-#     print("key:", key)
-
-#     # Retrieve the object from S3
-#     s3_object = s3.get_object(Bucket=bucket, Key=key)
-#     image_bytes = s3_object['Body'].read()
-
-#     rekognition_response = rekognition.detect_labels(
-#         Image={'Bytes': image_bytes},
-#         MaxLabels=10,
-#         MinConfidence=80
-#     )
-
-#     rekognition_labels = [label['Name'] for label in rekognition_response['Labels']]
-
-#     # Extract custom metadata labels
-#     metadata = s3.head_object(Bucket=bucket, Key=key)
-#     custom_labels = metadata['ResponseMetadata']['HTTPHeaders'].get('x-amz-meta-customlabels', '').split(',')
-#     print("custom_labels:", custom_labels)
-#     all_labels = custom_labels + rekognition_labels
-
-#     print("all_labels:", all_labels)
-
-#     if all_labels:
-#         # Create document for ElasticSearch
-#         document = {
-#             "objectKey": key,
-#             "bucket": bucket,
-#             "createdTimestamp": datetime.now().isoformat(),
-#             "labels": all_labels
-#         }
-
-#         print("Indexing images")
-
-#         try:
-#             response = es.index(
-#                 index="photos",
-#                 id=key,
-#                 body=document,
-#                 refresh=True
-#             )
-#             print("OpenSearch index response:", response)
-#         except Exception as e:
-#             print("ERROR indexing document:", str(e))
-
-
-#     # Update the object in S3 with the original content
-#     time.sleep(10)  # Delay to ensure operations are completed
-#     s3.delete_object(Bucket=bucket, Key=key)
-#     s3.put_object(Bucket=bucket, Body=decoded_content, Key=key, ContentType='image/jpg')
-
-#     return {
-#         'statusCode': 200,
-#         'body': json.dumps('Photo indexed successfully')
-#     }
-
 import boto3
 import json
-import urllib.parse
-from datetime import datetime
+import logging
+import urllib
 from opensearchpy import OpenSearch, RequestsHttpConnection
+import time
+import base64
 
-# Initialize clients
-s3 = boto3.client('s3')
-rekognition = boto3.client('rekognition', region_name='us-east-1')
+# Configure logger for debugging
+log_handler = logging.getLogger()
 
-# OpenSearch configuration
+# Initialize AWS clients and OpenSearch connection
+rekognition_client = boto3.client('rekognition', region_name='us-east-1')
+s3_service = boto3.client('s3')
+
+# ElasticSearch configuration
 es_endpoint = "search-photos-cq5z5g57zek6qmvs5p4lpdub5a.aos.us-east-1.on.aws"
 es_username = "Cloudhw3"
 es_password = "Cloud*hw3"
 
-es = OpenSearch(
+search_client = OpenSearch(
     hosts=[{'host': es_endpoint, 'port': 443}],
     http_auth=(es_username, es_password),
     use_ssl=True,
@@ -117,88 +26,60 @@ es = OpenSearch(
     connection_class=RequestsHttpConnection
 )
 
+# Extract bucket name and object key from S3 event
+def extract_s3_details(event):
+    bucket_name = event['Records'][0]['s3']['bucket']['name']
+    object_key = urllib.parse.unquote_plus(event['Records'][0]['s3']['object']['key'])
+    log_handler.debug(f"Extracted bucket: {bucket_name}, object key: {object_key}")
+    return bucket_name, object_key
 
+# Index photo metadata and labels into OpenSearch
+def index_photo_metadata(bucket_name, object_key, labels_list):
+    log_handler.debug(f"Indexing object '{object_key}' from bucket '{bucket_name}' into OpenSearch")
+    document_body = {
+        'bucket': bucket_name,
+        'key': object_key,
+        'createdTimestamp': str(int(time.time())),
+        'labels': labels_list
+    }
+    response = search_client.index(index="photo_metadata", id=object_key, body=document_body, refresh=True)
+    log_handler.debug(f"OpenSearch indexing response: {response}")
+
+# Lambda handler function
 def lambda_handler(event, context):
-    print("Received event:", json.dumps(event))
+    print("event ",event)
+    bucket_name, object_key = extract_s3_details(event)
+    log_handler.info(f"Processing object '{object_key}' from bucket '{bucket_name}'")
 
-    # 1. Get the S3 bucket and key from the event
-    record = event["Records"][0]
-    bucket = record["s3"]["bucket"]["name"]
-    key = urllib.parse.unquote_plus(record["s3"]["object"]["key"])
+    # Retrieve the object from S3
+    s3_object = s3_service.get_object(Bucket=bucket_name, Key=object_key)
+    object_content = s3_object['Body'].read()
+    decoded_content = base64.b64decode(object_content)
 
-    print("Bucket:", bucket)
-    print("Key:", key)
-
-    # 2. Get the image bytes from S3
-    s3_object = s3.get_object(Bucket=bucket, Key=key)
-    image_bytes = s3_object["Body"].read()
-
-    # 3. Detect labels using Rekognition
-    rekognition_response = rekognition.detect_labels(
-        Image={"Bytes": image_bytes},
+    # Detect labels using Rekognition
+    rekognition_response = rekognition_client.detect_labels(
+        Image={'Bytes': decoded_content},
         MaxLabels=10,
         MinConfidence=80
     )
+    detected_labels = [label['Name'] for label in rekognition_response['Labels']]
+    print(f"Detected labels from Rekognition: {detected_labels}")
 
-    rekognition_labels = [label["Name"] for label in rekognition_response["Labels"]]
-    print("Rekognition labels:", rekognition_labels)
+    # Extract custom metadata labels
+    metadata = s3_service.head_object(Bucket=bucket_name, Key=object_key)
+    print("metadata", metadata)
+    custom_labels = metadata['ResponseMetadata']['HTTPHeaders'].get('x-amz-meta-customlabels', '').split(',')
+    print("custom labels", custom_labels)
+    all_labels = custom_labels + detected_labels
+    print(f"Aggregated labels: {all_labels}")
 
-    # 4. Extract custom labels from S3 object metadata
-    head = s3.head_object(Bucket=bucket, Key=key)
-    # When you upload with x-amz-meta-customLabels, S3 stores that as Metadata["customlabels"]
-    metadata = head.get("Metadata", {})
-    custom_labels_header = metadata.get("customlabels", "")  # lowercase key
-    custom_labels = [
-        lbl.strip()
-        for lbl in custom_labels_header.split(",")
-        if lbl.strip()
-    ]
+    # Save metadata and labels to OpenSearch
+    if all_labels:
+        index_photo_metadata(bucket_name, object_key, all_labels)
+        print(f"Successfully indexed object '{object_key}'")
 
-    print("Custom labels:", custom_labels)
-
-    # 5. Combine all labels (avoid empty strings)
-    all_labels = list({
-        lbl for lbl in (rekognition_labels + custom_labels)
-        if lbl
-    })
-
-    print("All labels:", all_labels)
-
-    if not all_labels:
-        print("No labels found, skipping indexing.")
-        return {
-            "statusCode": 200,
-            "body": json.dumps("No labels found; document not indexed")
-        }
-
-    # 6. Build document for OpenSearch
-    document = {
-        "objectKey": key,
-        "bucket": bucket,
-        "createdTimestamp": datetime.utcnow().isoformat(),
-        "labels": all_labels
-    }
-
-    print("Indexing document:", document)
-
-    # 7. Index the document into OpenSearch
-    try:
-        response = es.index(
-            index="photos",
-            id=key,         # use S3 key as document id
-            body=document,
-            refresh=True
-        )
-        print("OpenSearch index response:", response)
-    except Exception as e:
-        print("ERROR indexing document:", str(e))
-        return {
-            "statusCode": 500,
-            "body": json.dumps(f"Error indexing document: {str(e)}")
-        }
-
-    # 8. Return a simple success response (S3 event doesn't really care)
-    return {
-        "statusCode": 200,
-        "body": json.dumps("Photo indexed successfully")
-    }
+    # Update the object in S3 with the original content
+    time.sleep(5)  # Delay to ensure operations are completed
+    s3_service.delete_object(Bucket=bucket_name, Key=object_key)
+    s3_service.put_object(Bucket=bucket_name, Body=decoded_content, Key=object_key, ContentType='image/jpg')
+    print(f"Updated object '{object_key}' in S3")

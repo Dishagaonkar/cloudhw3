@@ -68,7 +68,7 @@ def lambda_handler(event, context):
             }
         }
         print("OS query for label:", label, "->", json.dumps(query))
-        res = es.search(index="photos", body=query)
+        res = es.search(index="photo_metadata", body=query)
         print("OS response:", json.dumps(res))
         for hit in res["hits"]["hits"]:
             image_metadata.append(hit["_source"])

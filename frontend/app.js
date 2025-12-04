@@ -21,15 +21,22 @@ searchButton.addEventListener("click", async () => {
 
   const params = { q: query };
   const body = {};
-  const additionalParams = {};
+  var additionalParams = {
+    headers: {
+      'Content-Type': 'application/json'
+    }
+  };
 
   try {
     const result = await apigClient.searchGet(params, body, additionalParams);
+    console.log(result)
     const data = result.data;
 
     searchResultsDiv.innerHTML = "";
 
     const results = Array.isArray(data) ? data : data.results || [];
+
+    console.log("results",results)
 
     if (!results.length) {
       searchResultsDiv.textContent = "No results.";
@@ -40,9 +47,11 @@ searchButton.addEventListener("click", async () => {
       const REGION = "us-east-1";
       const imgUrl = `https://${
         item.bucket
-      }.s3.${REGION}.amazonaws.com/${encodeURIComponent(item.objectKey)}`;
+      }.s3.${REGION}.amazonaws.com/${encodeURIComponent(item.key)}`;
       // If your bucket is a website bucket instead, use this:
       // const imgUrl = `http://${item.bucket}.s3-website-us-east-1.amazonaws.com/${encodeURIComponent(item.objectKey)}`;
+
+      console.log("url",imgUrl)
 
       // Create a container for this result
       const card = document.createElement("div");
@@ -54,7 +63,7 @@ searchButton.addEventListener("click", async () => {
       // Create the <img>
       const img = document.createElement("img");
       img.src = imgUrl;
-      img.alt = (item.labels || []).join(", ") || item.objectKey;
+      img.alt = (item.labels || []).join(", ") || item.key;
       img.style.maxWidth = "200px";
       img.style.maxHeight = "200px";
       img.style.display = "block";
@@ -73,7 +82,7 @@ searchButton.addEventListener("click", async () => {
       const caption = document.createElement("div");
       caption.className = "photo-caption";
       const labelsText = (item.labels || []).join(", ");
-      caption.textContent = `File: ${item.objectKey}${
+      caption.textContent = `File: ${item.key}${
         labelsText ? " | Labels: " + labelsText : ""
       }`;
 
@@ -87,13 +96,13 @@ searchButton.addEventListener("click", async () => {
   }
 });
 
-// ===== UPLOAD =====
+// ===== UPLOAD (BinaryString Version for uploadPut) =====
 const fileInput = document.getElementById("file-input");
 const labelsInput = document.getElementById("labels-input");
 const uploadButton = document.getElementById("upload-button");
 const uploadStatusDiv = document.getElementById("upload-status");
 
-uploadButton.addEventListener("click", async () => {
+uploadButton.addEventListener("click", () => {
   const file = fileInput.files[0];
   if (!file) {
     uploadStatusDiv.textContent = "Please choose a file first.";
@@ -102,32 +111,53 @@ uploadButton.addEventListener("click", async () => {
 
   const labelsRaw = labelsInput.value.trim();
   const labelsArray = labelsRaw
-    ? labelsRaw
-        .split(",")
-        .map((s) => s.trim())
-        .filter((s) => s.length > 0)
+    ? labelsRaw.split(",").map((s) => s.trim()).filter((s) => s)
     : [];
-  const customLabelsHeader = labelsArray.join(", "); // "Sam, Sally"
+
+  const customLabelsHeader = labelsArray.join(", "); // "cat, beach, sunset"
 
   uploadStatusDiv.textContent = "Uploading...";
 
-  // Call API Gateway directly: PUT /V1/upload/{object}
-  const url = `https://l2ntureec1.execute-api.us-east-1.amazonaws.com/V1/upload/${encodeURIComponent(
-    file.name
-  )}`;
+  // ---- Read file as binary string (required for your Lambda logic) ----
+  const reader = new FileReader();
+  reader.readAsBinaryString(file);
 
-  try {
-    const res = await axios.put(url, file, {
-      headers: {
-        "Content-Type": file.type || "application/octet-stream",
-        "x-amz-meta-customlabels": customLabelsHeader,
-        "x-api-key": "GKLoyNNltr6wqagH21qV71wEN9x97fN08m9Gx7IR",
-      },
-    });
-    console.log(res);
-    uploadStatusDiv.textContent = "Upload successful!";
-  } catch (err) {
-    console.error(err);
-    uploadStatusDiv.textContent = "Upload failed. Check console.";
-  }
+  reader.onload = async function (e) {
+    try {
+      const binary = e.target.result;      // binary string
+      const body = btoa(binary);           // base64 encoding
+      console.log("Encoded length:", body.length);
+
+      // --- build apigClient ---
+      const apigClient = apigClientFactory.newClient({
+        apiKey: "GKLoyNNltr6wqagH21qV71wEN9x97fN08m9Gx7IR",
+      });
+
+      // ===== IMPORTANT =====
+      // uploadPut() takes:
+      // uploadPut(params, body, additionalParams)
+      // params = {}          (your SDK ignores them)
+      // body = base64 string
+      // additionalParams = headers
+      // =====================
+
+      const additionalParams = {
+        headers: {
+          "Content-Type": file.type || "application/octet-stream",
+          "x-amz-meta-customLabels": customLabelsHeader,
+        },
+      };
+
+      const params = { filename: file.name };
+      const result = await apigClient.uploadPut(params, body, additionalParams);
+
+
+      console.log("Upload result:", result);
+      uploadStatusDiv.textContent = "Upload successful!";
+      labelsInput.value = "";
+    } catch (err) {
+      console.error(err);
+      uploadStatusDiv.textContent = "Upload failed. Check console.";
+    }
+  };
 });

@@ -174,21 +174,21 @@ apigClientFactory.newClient = function (config) {
     if (additionalParams === undefined) {
       additionalParams = {};
     }
-
-    apiGateway.core.utils.assertParametersDefined(params, [], ["body"]);
-
+  
+    apiGateway.core.utils.assertParametersDefined(params, ["filename"], ["body"]);
+  
     var uploadPutRequest = {
-      verb: "put".toUpperCase(),
+      verb: "PUT",
       path:
         pathComponent +
-        uritemplate("/upload").expand(
-          apiGateway.core.utils.parseParametersToObject(params, [])
+        uritemplate("/upload/{filename}").expand(
+          apiGateway.core.utils.parseParametersToObject(params, ["filename"])
         ),
-      headers: apiGateway.core.utils.parseParametersToObject(params, []),
-      queryParams: apiGateway.core.utils.parseParametersToObject(params, []),
+      headers: additionalParams.headers,
+      queryParams: {},
       body: body,
     };
-
+  
     return apiGatewayClient.makeRequest(
       uploadPutRequest,
       authType,
@@ -196,6 +196,7 @@ apigClientFactory.newClient = function (config) {
       config.apiKey
     );
   };
+  
 
   apigClient.uploadOptions = function (params, body, additionalParams) {
     if (additionalParams === undefined) {
